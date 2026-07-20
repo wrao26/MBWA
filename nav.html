@@ -1,0 +1,112 @@
+/* ==========================================================================
+   MBWA ENT — main.js
+   Nav state, menu mobile, countdown, GSAP ScrollTrigger reveals.
+   ========================================================================== */
+
+document.addEventListener('DOMContentLoaded', () => {
+  /* ---------------- Nav: estado ao fazer scroll ---------------- */
+  const nav = document.getElementById('siteNav');
+  if (nav) {
+    const onScroll = () => nav.classList.toggle('is-scrolled', window.scrollY > 40);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  /* ---------------- Menu mobile ---------------- */
+  const burger = document.getElementById('navBurger');
+  const mobileMenu = document.getElementById('mobileMenu');
+  if (burger && mobileMenu) {
+    burger.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('is-open');
+      burger.setAttribute('aria-expanded', String(isOpen));
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    });
+    mobileMenu.querySelectorAll('a').forEach((a) =>
+      a.addEventListener('click', () => {
+        mobileMenu.classList.remove('is-open');
+        document.body.style.overflow = '';
+      })
+    );
+  }
+
+  /* ---------------- Countdown genérico ----------------
+     Uso: <div data-countdown="2026-08-02T18:00:00" ...> com filhos
+     [data-cd="days|hours|minutes|seconds"]
+  */
+  document.querySelectorAll('[data-countdown]').forEach((el) => {
+    const target = new Date(el.getAttribute('data-countdown')).getTime();
+    const dEl = el.querySelector('[data-cd="days"]');
+    const hEl = el.querySelector('[data-cd="hours"]');
+    const mEl = el.querySelector('[data-cd="minutes"]');
+    const sEl = el.querySelector('[data-cd="seconds"]');
+
+    function tick() {
+      const diff = Math.max(0, target - Date.now());
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      if (dEl) dEl.textContent = String(days).padStart(2, '0');
+      if (hEl) hEl.textContent = String(hours).padStart(2, '0');
+      if (mEl) mEl.textContent = String(minutes).padStart(2, '0');
+      if (sEl) sEl.textContent = String(seconds).padStart(2, '0');
+    }
+    tick();
+    setInterval(tick, 1000);
+  });
+
+  /* ---------------- GSAP: reveals + Energy Core intensity ---------------- */
+  if (window.gsap && window.ScrollTrigger) {
+    gsap.registerPlugin(ScrollTrigger);
+
+    gsap.utils.toArray('.reveal').forEach((el, i) => {
+      ScrollTrigger.create({
+        trigger: el,
+        start: 'top 85%',
+        onEnter: () => el.classList.add('is-visible'),
+        once: true,
+      });
+    });
+
+    gsap.utils.toArray('.reveal-stagger').forEach((group) => {
+      const items = group.querySelectorAll(':scope > *');
+      gsap.set(items, { opacity: 0, y: 24 });
+      ScrollTrigger.create({
+        trigger: group,
+        start: 'top 82%',
+        once: true,
+        onEnter: () =>
+          gsap.to(items, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', stagger: 0.08 }),
+      });
+    });
+
+    // Energy Core reage à secção em vista — cresce/intensifica gradualmente
+    if (window.EnergyCore) {
+      gsap.utils.toArray('[data-core-intensity]').forEach((section) => {
+        const intensity = parseFloat(section.getAttribute('data-core-intensity'));
+        const scale = parseFloat(section.getAttribute('data-core-scale') || '1');
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top center',
+          end: 'bottom center',
+          onEnter: () => { EnergyCore.setIntensity(intensity); EnergyCore.setScale(scale); },
+          onEnterBack: () => { EnergyCore.setIntensity(intensity); EnergyCore.setScale(scale); },
+        });
+      });
+    }
+  } else {
+    // Sem GSAP disponível — mostra tudo imediatamente (degradação graciosa)
+    document.querySelectorAll('.reveal').forEach((el) => el.classList.add('is-visible'));
+  }
+
+  /* ---------------- Loading screen cinematográfica ---------------- */
+  const loader = document.getElementById('siteLoader');
+  if (loader) {
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.remove(), 600);
+      }, 400);
+    });
+  }
+});
